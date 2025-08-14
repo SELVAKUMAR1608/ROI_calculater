@@ -30,14 +30,39 @@ const ReferralAIRevenueImpact = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setInputData({ ...inputData, [name]: value });
+    // Allow only numbers and a single decimal point
+  if (!/^\d*\.?\d*$/.test(value.replace(/,/g, ""))) {
+    return; // Prevent invalid input
+  }
+
+  // Remove commas for processing
+  const rawValue = value.replace(/,/g, "");
+
+  // Split integer and decimal parts
+  const [integerPart, decimalPart] = rawValue.split(".");
+
+  // Format only the integer part with commas
+  let formattedValue = Number(integerPart || 0).toLocaleString("en-US");
+
+  // Add decimal part back if it exists (including unfinished decimals like "123.")
+  if (rawValue.includes(".")) {
+    formattedValue += "." + (decimalPart !== undefined ? decimalPart : "");
+  }
+    setInputData({ ...inputData, [name]: formattedValue });
   };
 
   const handleSubmit = async () => {
     try {
+
+      const payload = Object.fromEntries(
+       Object.entries(inputData).map(([key, val]) => [
+          key,
+          val.replace(/,/g, ""),
+        ])
+      );
       const response = await axios.post(
         `${apiUrl}/calculate-referral-impact`,
-        inputData
+        payload
       );
       setOutputData(response.data);
       setShowOutput(true)
@@ -83,6 +108,44 @@ const ReferralAIRevenueImpact = () => {
           />
         </div>
 
+         <div className="col-md-6">
+          <label className="form-label">Referral Value </label>
+          <input
+            type="string"
+            className="form-control"
+            name="referral_value"
+            placeholder="e.g. 40"
+            value={inputData.referral_value}
+            onChange={handleChange}
+          />
+        </div>
+
+         <div className="col-md-6">
+          <label className="form-label">Baseline Leakage Rate (%)</label>
+          <input
+            type="string"
+            className="form-control"
+            name="baseline_leakage_rate_pct"
+            placeholder="e.g. 40"
+            value={inputData.baseline_leakage_rate_pct}
+            onChange={handleChange}
+          />
+        </div>
+
+         <div className="col-md-6">
+          <label className="form-label">
+            Baseline Completed Visit Rate (%)
+          </label>
+          <input
+            type="string"
+            className="form-control"
+            name="baseline_completed_visit_rate_pct"
+            placeholder="e.g. 40"
+            value={inputData.baseline_completed_visit_rate_pct}
+            onChange={handleChange}
+          />
+        </div>
+
         <div className="col-md-6">
           <label className="form-label">Referral AI Leakage Rate (%)</label>
           <input
@@ -105,41 +168,6 @@ const ReferralAIRevenueImpact = () => {
             name="ai_completed_visit_rate_pct"
             placeholder="e.g. 40"
             value={inputData.ai_completed_visit_rate_pct}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="col-md-6">
-          <label className="form-label">Referral Value </label>
-          <input
-            type="string"
-            className="form-control"
-            name="referral_value"
-            placeholder="e.g. 40"
-            value={inputData.referral_value}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="col-md-6">
-          <label className="form-label">Baseline Leakage Rate (%)</label>
-          <input
-            type="string"
-            className="form-control"
-            name="baseline_leakage_rate_pct"
-            placeholder="e.g. 40"
-            value={inputData.baseline_leakage_rate_pct}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="col-md-6">
-          <label className="form-label">
-            Baseline Completed Visit Rate (%)
-          </label>
-          <input
-            type="string"
-            className="form-control"
-            name="baseline_completed_visit_rate_pct"
-            placeholder="e.g. 40"
-            value={inputData.baseline_completed_visit_rate_pct}
             onChange={handleChange}
           />
         </div>
@@ -170,7 +198,8 @@ const ReferralAIRevenueImpact = () => {
             { label: "Referral AI Leakage", value: outputData.ai_leakage },
             {
               label: "Referral AI Completed Visits",
-              value: outputData.baseline_completed_visits
+              value: outputData.ai_completed_visits
+
 ,
             },
             {
@@ -178,7 +207,7 @@ const ReferralAIRevenueImpact = () => {
               value: outputData. ai_revenue,
             },
             {
-              label: "Referral AI Revenue Impact",
+              label: "Referral AI Revenue Impact ($)",
               value: outputData. ai_revenue_impact,
             },
           ].map((item, index, arr) => (

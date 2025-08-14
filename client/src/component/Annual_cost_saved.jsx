@@ -80,36 +80,67 @@ const Annual_cost_saved = () => {
     labourCostSaved: 0,
     annual_referral_volume: 0,
     baseline_total_work_hours: 0,
-    ai_total_hours_sum:0,
-    baseline_hours_total:0,
+    ai_total_hours_sum: 0,
+    baseline_hours_total: 0,
   });
 
   const [showOutput, setShowOutput] = useState(false);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setInputData({ ...inputData, [name]: value });
-  };
+  const { name, value } = e.target;
+
+  // Allow only numbers and a single decimal point
+  if (!/^\d*\.?\d*$/.test(value.replace(/,/g, ""))) {
+    return; // Prevent invalid input
+  }
+
+  // Remove commas for processing
+  const rawValue = value.replace(/,/g, "");
+
+  // Split integer and decimal parts
+  const [integerPart, decimalPart] = rawValue.split(".");
+
+  // Format only the integer part with commas
+  let formattedValue = Number(integerPart || 0).toLocaleString("en-US");
+
+  // Add decimal part back if it exists (including unfinished decimals like "123.")
+  if (rawValue.includes(".")) {
+    formattedValue += "." + (decimalPart !== undefined ? decimalPart : "");
+  }
+
+  setInputData({ ...inputData, [name]: formattedValue });
+};
+
 
   const handleCalculate = async () => {
     try {
-      const response = await axios.post(
-        `${apiUrl}/calculate-referral-efficiency`,
-        inputData
+      // const response = await axios.post(
+      //   `${apiUrl}/calculate-referral-efficiency`,
+      //   inputData
+      // );
+
+      const payload = Object.fromEntries(
+       Object.entries(inputData).map(([key, val]) => [
+          key,
+          val.replace(/,/g, ""),
+        ])
       );
+      const response=await axios.post(`${apiUrl}/calculate-referral-efficiency`, payload);
+
       setOutputData(response.data);
       setShowOutput(true);
       console.log("annual cost data:", response.data);
       console.log("outputdata:", outputData);
-    } catch(error ){
-    if (error.response && error.response.data) {
-      const err = error.response.data;
-      // Show error on the UI
-     toast.error(` ${err.detail}`);
-    } else {
-      toast.error("Something went wrong. Please try again.");
+    } catch (error) {
+      if (error.response && error.response.data) {
+        const err = error.response.data;
+        // Show error on the UI
+        toast.error(` ${err.detail}`);
+        console.log(error)
+      } else {
+        toast.error("Something went wrong. Please try agai.");
+      }
     }
-  };
   };
 
   const format = (num) => {
@@ -173,21 +204,6 @@ const Annual_cost_saved = () => {
               placeholder: "e.g. 53",
             },
             {
-              label: "Easy - Touch Time (%)",
-              name: "touch_time_easy_pct",
-              placeholder: "e.g. 60",
-            },
-            {
-              label: "Moderate - Touch Time (%)",
-              name: "touch_time_moderate_pct",
-              placeholder: "e.g. 10",
-            },
-            {
-              label: "Complex - Touch Time (%)",
-              name: "touch_time_complex_pct",
-              placeholder: "e.g. 6",
-            },
-            {
               label: "Easy - Baseline Time (hrs)",
               name: "baseline_time_easy_hrs",
               placeholder: "e.g. 15",
@@ -203,17 +219,32 @@ const Annual_cost_saved = () => {
               placeholder: "e.g. 5",
             },
             {
-              label: "Easy - Referal Touch Time (hrs)",
+              label: "Easy - Baseline Touch Time (%)",
+              name: "touch_time_easy_pct",
+              placeholder: "e.g. 60",
+            },
+            {
+              label: "Moderate - Baseline Touch Time (%)",
+              name: "touch_time_moderate_pct",
+              placeholder: "e.g. 10",
+            },
+            {
+              label: "Complex -Baseline  Touch Time (%)",
+              name: "touch_time_complex_pct",
+              placeholder: "e.g. 6",
+            },
+            {
+              label: "Easy - Referral Touch Time (%)",
               name: "referral_complexity_touch_time_easy",
               placeholder: "e.g. 5",
             },
             {
-              label: "Moderate - Referal Touch Time (hrs)",
+              label: "Moderate - Referral Touch Time (%)",
               name: "referral_complexity_touch_time_moderate",
               placeholder: "e.g. 5",
             },
             {
-              label: "Complex - Referal Touch Time (hrs)",
+              label: "Complex - Referral Touch Time (%)",
               name: "referral_complexity_touch_time_complex",
               placeholder: "e.g. 5",
             },
@@ -328,7 +359,7 @@ const Annual_cost_saved = () => {
                 <tr>
                   <td>Easy</td>
                   <td>{outputData.baseline_hours.easy}</td>
-                  <td>{outputData.input_parameters.baseline_time_easy_hrs}%</td>
+                  <td>{inputData.touch_time_easy_pct}%</td>
                   <td>
                     {format(
                       parseFloat(
@@ -341,7 +372,7 @@ const Annual_cost_saved = () => {
                   <td>Moderate</td>
                   <td>{outputData.baseline_hours.moderate}</td>
                   <td>
-                    {outputData.input_parameters.baseline_time_moderate_hrs}%
+                    {inputData.touch_time_moderate_pct}%
                   </td>
                   <td>
                     {format(
@@ -358,7 +389,7 @@ const Annual_cost_saved = () => {
                   <td>Complex</td>
                   <td>{outputData.baseline_hours.complex}</td>
                   <td>
-                    {outputData.input_parameters.baseline_time_complex_hrs}%
+                    {inputData.touch_time_complex_pct}%
                   </td>
                   <td>
                     {format(
@@ -370,7 +401,9 @@ const Annual_cost_saved = () => {
                 </tr>
                 <tr className="table-warning fw-bold">
                   <td>Total</td>
-                  <td className="text-success">{format(outputData.baseline_hours_total)}</td>
+                  <td className="text-success">
+                    {format(outputData.baseline_hours_total)}
+                  </td>
                   <td></td>
                   <td className="text-success">
                     {format(outputData.baseline_total_work_hours)}
@@ -394,8 +427,9 @@ const Annual_cost_saved = () => {
               <tbody>
                 <tr>
                   <td>Easy</td>
-                  <td>{Number(outputData.ai_processing_times.easy).toFixed(2)}</td>
-
+                  <td>
+                    {Number(outputData.ai_processing_times.easy).toFixed(2)}
+                  </td>
                 </tr>
                 <tr>
                   <td>Moderate</td>
@@ -428,13 +462,7 @@ const Annual_cost_saved = () => {
                 <tr>
                   <td>Easy</td>
                   <td>{format(outputData.ai_total_hours.easy)}</td>
-                  <td>
-                    {
-                      outputData.input_parameters
-                        .referral_complexity_touch_time_easy
-                    }
-                    %
-                  </td>
+                  <td> {inputData.referral_complexity_touch_time_easy}%</td>
                   <td>{format(outputData.ai_work_hours.easy)}</td>
                 </tr>
                 <tr>
@@ -442,8 +470,7 @@ const Annual_cost_saved = () => {
                   <td>{format(outputData.ai_total_hours.moderate)}</td>
                   <td>
                     {
-                      outputData.input_parameters
-                        .referral_complexity_touch_time_moderate
+                      inputData.referral_complexity_touch_time_moderate
                     }
                     %
                   </td>
@@ -454,8 +481,7 @@ const Annual_cost_saved = () => {
                   <td>{format(outputData.ai_total_hours.complex)}</td>
                   <td>
                     {
-                      outputData.input_parameters
-                        .referral_complexity_touch_time_complex
+                      inputData.referral_complexity_touch_time_complex
                     }
                     %
                   </td>
@@ -463,7 +489,9 @@ const Annual_cost_saved = () => {
                 </tr>
                 <tr className="table-warning fw-bold">
                   <td>Total</td>
-                  <td className="text-success">{format(outputData.ai_total_hours_sum)}</td>
+                  <td className="text-success">
+                    {format(outputData.ai_total_hours_sum)}
+                  </td>
                   <td></td>
                   <td className="text-success">
                     {format(outputData.ai_total_work_hours)}
@@ -474,7 +502,7 @@ const Annual_cost_saved = () => {
           </div>
 
           <hr className="my-5" />
-                 {showOutput && (
+          {showOutput && (
             <div className="container mt-5">
               <div className="bg-white p-4 rounded shadow-sm border mb-5">
                 <h4 className="mb-4 text-success fw-bold">
@@ -511,9 +539,7 @@ const Annual_cost_saved = () => {
                       </div>
                       <div className="h5 text-dark mb-0">
                         {outputData.hour_reduction_percentage
-                          ? Math.round(
-                              outputData.hour_reduction_percentage 
-                            )
+                          ? Math.round(outputData.hour_reduction_percentage)
                           : 0}
                         %
                       </div>
