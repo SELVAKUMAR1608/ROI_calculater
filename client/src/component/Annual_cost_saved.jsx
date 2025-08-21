@@ -235,9 +235,7 @@ const Annual_cost_saved = () => {
         {showOutput && (
           <div className="mt-4">
             <div>
-              {/* <h5 className="mb-3 text-success">Baseline Output</h5> */}
-              {/* You can reuse baseline tables here */}
-
+              
               <div className="card p-4 shadow-sm">
                 <h5 className="mb-3 text-success">
                   Work Hours Summary (Baseline with Touch Time)
@@ -254,7 +252,7 @@ const Annual_cost_saved = () => {
                   <tbody>
                     <tr>
                       <td>Easy</td>
-                      <td>{outputData.baseline_hours.easy}</td>
+                      <td>{format(outputData.baseline_hours.easy)}</td>
                       <td>{inputData.touch_time_easy_pct}%</td>
                       <td>
                         {format(
@@ -269,7 +267,7 @@ const Annual_cost_saved = () => {
                     </tr>
                     <tr>
                       <td>Moderate</td>
-                      <td>{outputData.baseline_hours.moderate}</td>
+                      <td>{format(outputData.baseline_hours.moderate)}</td>
                       <td>{inputData.touch_time_moderate_pct}%</td>
                       <td>
                         {format(
@@ -284,7 +282,7 @@ const Annual_cost_saved = () => {
                     </tr>
                     <tr>
                       <td>Complex</td>
-                      <td>{outputData.baseline_hours.complex}</td>
+                      <td>{format(outputData.baseline_hours.complex)}</td>
                       <td>{inputData.touch_time_complex_pct}%</td>
                       <td>
                         {format(
