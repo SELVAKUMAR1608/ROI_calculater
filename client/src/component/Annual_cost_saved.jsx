@@ -144,14 +144,6 @@ const Annual_cost_saved = () => {
           ))}
         </div>
 
-        {/* <div className="text-start mt-4">
-          <button
-            className="btn btn-primary btn-lg px-4"
-            onClick={handleCalculate}
-          >
-            Calculate Annual Labour Cost Saved
-          </button>
-        </div> */}
 
         {/* --- Summary Output --- */}
         {showOutput && (
@@ -271,7 +263,7 @@ const Annual_cost_saved = () => {
                               /,/g,
                               ""
                             )
-                          ) / 100
+                          ) 
                         )}
                       </td>
                     </tr>
@@ -286,7 +278,7 @@ const Annual_cost_saved = () => {
                               /,/g,
                               ""
                             )
-                          ) / 100
+                          ) 
                         )}
                       </td>
                     </tr>
@@ -301,7 +293,7 @@ const Annual_cost_saved = () => {
                               /,/g,
                               ""
                             )
-                          ) / 100
+                          ) 
                         )}
                       </td>
                     </tr>
