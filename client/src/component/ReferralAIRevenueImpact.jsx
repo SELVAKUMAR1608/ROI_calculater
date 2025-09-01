@@ -26,17 +26,16 @@ const ReferralAIRevenueImpact = () => {
     total_possible_referral_revenue: 0,
   });
 
-   const [showOutput, setShowOutput] = useState(false);
+  const [showOutput, setShowOutput] = useState(false);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    // Allow only numbers and a single decimal point
-  if (!/^\d*\.?\d*$/.test(value.replace(/,/g, ""))) {
-    return; // Prevent invalid input
-  }
+  const { name, value } = e.target;
 
-  // Remove commas for processing
-  const rawValue = value.replace(/,/g, "");
+  // Remove $ and commas for processing
+  let rawValue = value.replace(/\$/g, "").replace(/,/g, "");
+
+  // Allow only numbers and a single decimal point
+  if (!/^\d*\.?\d*$/.test(rawValue)) return;
 
   // Split integer and decimal parts
   const [integerPart, decimalPart] = rawValue.split(".");
@@ -44,39 +43,46 @@ const ReferralAIRevenueImpact = () => {
   // Format only the integer part with commas
   let formattedValue = Number(integerPart || 0).toLocaleString("en-US");
 
-  // Add decimal part back if it exists (including unfinished decimals like "123.")
-  if (rawValue.includes(".")) {
-    formattedValue += "." + (decimalPart !== undefined ? decimalPart : "");
+  // Add decimal part back if it exists
+  if (decimalPart !== undefined) {
+    formattedValue += "." + decimalPart;
   }
-    setInputData({ ...inputData, [name]: formattedValue });
-  };
+
+  // Prefix with $ if this is referral_value field
+  if (name === "referral_value") {
+    formattedValue = "$" + formattedValue;
+  }
+
+  setInputData({ ...inputData, [name]: formattedValue });
+};
 
   const handleSubmit = async () => {
-    try {
+  try {
+    // Remove $ and commas before sending
+    const payload = Object.fromEntries(
+      Object.entries(inputData).map(([key, val]) => [
+        key,
+        val.replace(/\$/g, "").replace(/,/g, ""),
+      ])
+    );
 
-      const payload = Object.fromEntries(
-       Object.entries(inputData).map(([key, val]) => [
-          key,
-          val.replace(/,/g, ""),
-        ])
-      );
-      const response = await axios.post(
-        `${apiUrl}/calculate-referral-impact`,
-        payload
-      );
-      setOutputData(response.data);
-      setShowOutput(true)
-      console.log("revenueImpact data:", response.data);
-    }catch(error ){
+    const response = await axios.post(
+      `${apiUrl}/calculate-referral-impact`,
+      payload
+    );
+    setOutputData(response.data);
+    setShowOutput(true);
+    console.log("revenueImpact data:", response.data);
+  } catch (error) {
     if (error.response && error.response.data) {
       const err = error.response.data;
-      // Show error on the UI
       toast.error(` ${err.detail}`);
     } else {
       toast.error("Something went wrong. Please try again.");
     }
-  };
-  };
+  }
+};
+
 
   return (
     <div className="container my-5 p-4 rounded shadow-sm bg-white border">
@@ -85,13 +91,15 @@ const ReferralAIRevenueImpact = () => {
         <p className="text-muted">
           Estimate the revenue uplift with AI-driven referral optimization
         </p>
-        <hr className="mb-4"/>
-
-        
+        <hr className="mb-4" />
       </div>
       <div>
-          <p className="text-success mb-3"> Please Enter The Below Details And Click the Calculate Revenue Impact  Button  </p>
-        </div>
+        <p className="text-success mb-3">
+          {" "}
+          Please Enter The Below Details And Click the Calculate Revenue Impact
+          Button{" "}
+        </p>
+      </div>
 
       <div className="row g-4 p-3 bg-light rounded border mb-4 mt-3">
         {/* Input Fields */}
@@ -108,7 +116,7 @@ const ReferralAIRevenueImpact = () => {
           />
         </div>
 
-         <div className="col-md-6">
+        <div className="col-md-6">
           <label className="form-label">Referral Value </label>
           <input
             type="string"
@@ -120,7 +128,7 @@ const ReferralAIRevenueImpact = () => {
           />
         </div>
 
-         <div className="col-md-6">
+        <div className="col-md-6">
           <label className="form-label">Baseline Leakage Rate (%)</label>
           <input
             type="string"
@@ -132,7 +140,7 @@ const ReferralAIRevenueImpact = () => {
           />
         </div>
 
-         <div className="col-md-6">
+        <div className="col-md-6">
           <label className="form-label">
             Baseline Completed Visit Rate (%)
           </label>
@@ -181,67 +189,72 @@ const ReferralAIRevenueImpact = () => {
 
       {/* Output Section */}
       {showOutput && (
-              <div className="mt-5">
-        <h4 className="fw-semibold mb-3 text-success">Referral AI Revenue Impact</h4>
-        <div className="row g-4">
-          {[
-            {
-              label: "Total Possible Referral Revenue ($)",
-              value: outputData.total_possible_referral_revenue,
-            },
-            { label: "Baseline Leakage", value: outputData.baseline_leakage },
-            {
-              label: "Baseline Completed Visits",
-              value: outputData.baseline_completed_visits,
-            },
-            { label: "Baseline - Revenue  ($)", value: outputData. baseline_revenue },
-            { label: "Referral AI Leakage", value: outputData.ai_leakage },
-            {
-              label: "Referral AI Completed Visits",
-              value: outputData.ai_completed_visits
-
-,
-            },
-            {
-              label: "Referral AI - Revenue  ($)",
-              value: outputData. ai_revenue,
-            },
-            {
-              label: "Referral AI Revenue Impact ($)",
-              value: outputData. ai_revenue_impact,
-            },
-          ].map((item, index, arr) => (
-            <div className="col-md-6 col-lg-4" key={index}>
-              <div
-                className={`border rounded p-3 shadow-sm h-100 ${
-                  index === arr.length - 1
-                    ? "bg-success bg-opacity-10 border-success"
-                    : "bg-white"
-                }`}
-              >
-                <h6
-                  className={
-                    index === arr.length - 1 ? "text-success" : "text-secondary"
-                  }
-                >
-                  {item.label}
-                </h6>
-                <p
-                  className={`fs-5 fw-bold m-0 ${
-                    index === arr.length - 1 ? "text-dark" : "text-dark"
+        <div className="mt-5">
+          <h4 className="fw-semibold mb-3 text-success">
+            Referral AI Revenue Impact
+          </h4>
+          <div className="row g-4">
+            {[
+              {
+                label: "Total Possible Referral Revenue ($)",
+                value: outputData.total_possible_referral_revenue,
+              },
+              { label: "Baseline Leakage", value: outputData.baseline_leakage },
+              {
+                label: "Baseline Completed Visits",
+                value: outputData.baseline_completed_visits,
+              },
+              {
+                label: "Baseline - Revenue  ($)",
+                value: outputData.baseline_revenue,
+              },
+              { label: "Referral AI Leakage", value: outputData.ai_leakage },
+              {
+                label: "Referral AI Completed Visits",
+                value: outputData.ai_completed_visits,
+              },
+              {
+                label: "Referral AI - Revenue  ($)",
+                value: outputData.ai_revenue,
+              },
+              {
+                label: "Referral AI Revenue Impact ($)",
+                value: outputData.ai_revenue_impact,
+              },
+            ].map((item, index, arr) => (
+              <div className="col-md-6 col-lg-4" key={index}>
+                <div
+                  className={`border rounded p-3 shadow-sm h-100 ${
+                    index === arr.length - 1
+                      ? "bg-success bg-opacity-10 border-success"
+                      : "bg-white"
                   }`}
                 >
-                  {typeof item.value === "number"
-                    ? `$${item.value.toLocaleString()}`
-                    : item.value}
-                </p>
+                  <h6
+                    className={
+                      index === arr.length - 1
+                        ? "text-success"
+                        : "text-secondary"
+                    }
+                  >
+                    {item.label}
+                  </h6>
+                  <p className="fs-5 fw-bold m-0 text-dark">
+                    {[
+                      "Total Possible Referral Revenue ($)",
+                      "Baseline - Revenue  ($)",
+                      "Referral AI - Revenue  ($)",
+                      "Referral AI Revenue Impact ($)",
+                    ].includes(item.label)
+                      ? `$${item.value.toLocaleString()}`
+                      : item.value}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
       )}
-
     </div>
   );
 };

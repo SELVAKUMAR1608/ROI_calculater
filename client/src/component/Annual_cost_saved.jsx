@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
-const Annual_cost_saved = () => {
+const Annual_cost_saved = ({ onProceedToImpact = () => {} }) => {
   const [inputData, setInputData] = useState({
     num_referral_coordinators: "",
     avg_annual_referral_volume_per_coordinator: "",
@@ -28,6 +28,9 @@ const Annual_cost_saved = () => {
 
   const [outputData, setOutputData] = useState({});
   const [showOutput, setShowOutput] = useState(false);
+  const [resultsReady, setResultsReady] = useState(false); //  new state
+
+  const resultsRef = useRef(null); //  ref for auto-scroll
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -58,6 +61,7 @@ const Annual_cost_saved = () => {
 
       setOutputData(response.data);
       setShowOutput(true);
+      setResultsReady(true); //  allow referral AI button
     } catch (error) {
       if (error.response && error.response.data) {
         toast.error(` ${error.response.data.detail}`);
@@ -66,6 +70,13 @@ const Annual_cost_saved = () => {
       }
     }
   };
+
+  //  Scroll into view once results are ready
+  useEffect(() => {
+    if (resultsReady && resultsRef.current) {
+      resultsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [resultsReady]);
 
   const format = (num) => {
     const sanitized =
@@ -77,11 +88,13 @@ const Annual_cost_saved = () => {
 
   return (
     <div className="container py-5">
-      <div className="card p-4 shadow">
-        <h4 className="mb-4 text-primary fw-bold">Total Referrals by Complexity</h4>
-
+      <div className="card p-4 shadow" ref={resultsRef}>
+        {" "}
+        {/* ✅ ref added here */}
+        <h4 className="mb-4 text-primary fw-bold">
+          Total Referrals by Complexity
+        </h4>
         {/* --- General Inputs --- */}
-        
         <div className="row g-3">
           {[
             {
@@ -143,8 +156,6 @@ const Annual_cost_saved = () => {
             </div>
           ))}
         </div>
-
-
         {/* --- Summary Output --- */}
         {showOutput && (
           <div className="mt-4">
@@ -235,7 +246,6 @@ const Annual_cost_saved = () => {
         {showOutput && (
           <div className="mt-4">
             <div>
-              
               <div className="card p-4 shadow-sm">
                 <h5 className="mb-3 text-success">
                   Work Hours Summary (Baseline with Touch Time)
@@ -261,7 +271,7 @@ const Annual_cost_saved = () => {
                               /,/g,
                               ""
                             )
-                          ) 
+                          )
                         )}
                       </td>
                     </tr>
@@ -276,7 +286,7 @@ const Annual_cost_saved = () => {
                               /,/g,
                               ""
                             )
-                          ) 
+                          )
                         )}
                       </td>
                     </tr>
@@ -291,7 +301,7 @@ const Annual_cost_saved = () => {
                               /,/g,
                               ""
                             )
-                          ) 
+                          )
                         )}
                       </td>
                     </tr>
@@ -351,7 +361,7 @@ const Annual_cost_saved = () => {
         {/* AI Output */}
         {showOutput && (
           <div className="mt-4">
-            <div className="card p-4 shadow-sm mb-5" >
+            <div className="card p-4 shadow-sm mb-5">
               <h5 className="mb-3 text-success">Referral AI Time (hrs)</h5>
               <table className="table table-bordered">
                 <thead className="table-light">
@@ -430,12 +440,10 @@ const Annual_cost_saved = () => {
         )}
       </div>
 
-      {/* --- Final Annual Labour Cost Saved Summary --- */}
+      {/* --- Final Annual Labor Cost Saved Summary --- */}
       {showOutput && (
         <div className="card p-4 shadow mt-5">
-          <h4 className="mb-4 text-success fw-bold">
-            Annual Labour Cost Saved
-          </h4>
+          <h4 className="mb-4 text-success fw-bold">Annual Labor Cost Saved</h4>
           <div className="row row-cols-1 g-3">
             <div className="col">
               <div className="p-3 rounded bg-white border">
@@ -493,14 +501,33 @@ const Annual_cost_saved = () => {
           </div>
         </div>
       )}
-      <div className="text-start mt-4">
-        <button
-          className="btn btn-primary btn-lg px-4"
-          onClick={handleCalculate}
-        >
-          Calculate Annual Labour Cost Saved
-        </button>
-      </div>
+
+      {/*  Show button ONLY before results are calculated */}
+      {!resultsReady && (
+        <div className="text-start mt-4">
+          <button
+            className="btn btn-primary btn-lg px-4"
+            onClick={handleCalculate}
+          >
+            Calculate Annual Labor Cost Saved
+          </button>
+        </div>
+      )}
+
+      {/*  After results: show Referral AI Revenue Impact message/button */}
+      {resultsReady && (
+        <div className="text-start mt-4">
+          <div className="alert alert-info">
+            Now you can proceed to calculate <b>Referral AI Revenue Impact</b>.
+          </div>
+          <button
+            className="btn btn-success btn-lg px-4 w-100"
+            onClick={onProceedToImpact} //  calls parent
+          >
+            Calculate Referral AI Revenue Impact
+          </button>
+        </div>
+      )}
     </div>
   );
 };
